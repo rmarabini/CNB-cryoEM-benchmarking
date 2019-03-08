@@ -1,0 +1,39 @@
+K3 description: movies at 5760 x 4092 (increase of 1.6 over K2 siz) -> 24 megapixels
+1,500 (vs 400) full frames per second –> typically average to 75 fps and then to 25 fps (if superresolution double size)
+RAtion 6.2 more data than K2
+
+
+[[https://nramm.nysbc.org/wp-content/seminars/2017/slides/nrammmooney2017.pdf]]
+
+
+=======================================
+* K3 outputs more data than K2, one has to deal with storage capacity seriously if you run a scope effciently. 
+Otherwise, one might find that you quickly run out of data storage space. Saving frame data with compression 
+and without gain applied has clear advantages here!
+
+* Our K3 system package came with a GP100 Nvidia card. Also there is MotionCor2 utility via DM interface. However,
+there is no way to access to MotionCor2 outside of DM. Fortunitely, we can still utilize the powerful GPU card. 
+If we run framewatcher to align ~30-40 Super-res frames, it can do as fast as ~10 seconds for one stack.
+This is sufficient at least for our session monitoring purpose. Very nice indeed!
+https://sphinx-emdocs.readthedocs.io/en/latest/serialEM-note-K3-is-installed-on-Talos.html
+==========================================
+
+Gatan recommendation dose rate for K3: 8-40 e/p/s for the K3. [
+
+“Why is the dark current (= signal acquired in counting mode with the column’s valves closed/no signal) so
+high? For the K2 camera, this effect was negligible, as expected for counting mode. For K3, the effect is quite
+large (unstable in terms of magnitude, but stable in terms of pattern)”
+There are two key changes between K2 and K3 that explain this:
+a) For the K2, dark references were recorded periodically (e.g. every 6-12 hours) for a relatively long recording
+time (~3 min average). However, pixel “strangeness” (such as hot or dark pixels) varies quickly, meaning after a
+certain period the dark reference correction decreases in quality. Thus, Gatan decided to improve the dark
+current correction by changing to short dark references acquired right before every recorded image. This process
+seems to provide a little bit better correction than the previous method, and for now that’s what Gatan is doing.
+
+
+https://www.utsouthwestern.edu/labs/cemf/assets/k3-experiences-faqs-UTSW-v2.pdf
+================
+two mocels
+K3 IS model (1027) – 24 megapixels (5,760 x 4,092)
+K3 Base IS model (1026) – 14 megapixels (3,456 x 4,092)
+http://www.gatan.com/k3-cameras
