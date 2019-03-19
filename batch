@@ -1,0 +1,47 @@
+rm *.mrcs
+# cut to 5,760 x 4,092 x 33
+xmipp_transform_window -i 17may06a_b_00010gr_00018sq_v01_00002hl16_00002edhii.frames.mrc:mrc --size 5760 4092 33 -o 2.mrcs
+xmipp_transform_window -i 17may06a_b_00010gr_00018sq_v01_00002hl16_00003edhii.frames.mrc:mrc --size 5760 4092 33 -o 3.mrcs
+
+# create  a lare volume by adding 3 times each plane
+rm pp.mrcs
+# loop
+var=0
+for i in {1..33}
+do
+    for ii in {1..3}
+    do
+        var=$((var + 1))
+        printf -v j "%05d" $var
+        echo $i, $ii, $var, $j
+        xmipp_image_convert  -i $i@2.mrcs -o kk.mrcs --append
+        ls -l kk.mrcs 2.mrcs
+    done
+done
+# convert 4bit mrc
+newstack -in kk.mrcs -ou 22_4bit.mrcs -fo mrc -mo 101 -multadd '1 0'
+
+var=0
+for i in {1..33}
+do
+    for ii in {1..3}
+    do
+        var=$((var + 1))
+        echo $i, $ii, $var
+        xmipp_image_convert  -i $i@3.mrcs -o pp.mrcs -t stk --append
+    done
+done
+# convert 4bit mrc
+newstack -in pp.mrcs -ou 33_4bit.mrcs -fo mrc -mo 101 -multadd '1 0'
+
+
+
+# enlarge
+xmipp_transform_geometry -i 22.mrcs -o 22_large.mrcs --scale 2 --interp linear
+xmipp_transform_geometry -i 33.mrcs -o 33_large.mrcs --scale 2 --interp linear
+newstack -in 22_large.mrcs -ou 22_large_4bit.mrcs -fo mrc -mo 101 -float 1
+newstack -in 33_large.mrcs -ou 33_large_4bit.mrcs -fo mrc -mo 101 -float 1
+
+xmipp_transform_window -i norm-gatandata-0.mrc --size 5760 4092  -o norm_5760.mrc
+
+

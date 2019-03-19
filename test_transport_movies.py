@@ -2,12 +2,15 @@ import sqlite3
 from sqlite3 import Error
 import time
 from random import randint
-from os import remove
+from os import remove, getenv
+from os.path import join
+import glob
+lastMovieDeleted =0
 
 NUMBERHOLES = 1024
 NUMBERMOVIESPERHOLE = 4
-TIMEPERMOVIE = 5 # 20 # secs
-TIMEMOVEHOLE = 10 # 45 # secs
+TIMEPERMOVIE = 20 # secs # 5
+TIMEMOVEHOLE = 45 # secs # 10
 FAILURERATE = 75 # 1 = all holes, slip 1 each 4 times
 
 DATABASENAME = 'movies.sqlite'
@@ -20,6 +23,12 @@ if LARGEON:
     INMOVIENAME = '22_large_4bit.mrcs'
 else:
     INMOVIENAME = '22_4bit.mrcs'
+
+scipionUserData = getenv('SCIPION_USER_DATA')
+PROJECT='bench'
+PROTOCOLDIR='005510_ProtMotionCorr/'
+EXTRA='extra'
+
 
 def createDataBase(databasename):
     DROPTABLECOMMAND = "DROP TABLE IF EXISTS {tablename}"
@@ -84,31 +93,56 @@ def writeImage(outFileName, contents):
 def createImage(ih, outFileName):
     ih.write(outFileName)
 
-def deleteUsedMovies(cur, conn):
-    #  get list of movies to be deleted
-    cur.execute("""SELECT id, movieName
-                   FROM {tablename}
-                   WHERE toBeDeleted=1
-                     AND alreadyDeleted=0""".format(
-        tablename=TABLENAMEMOVIES))
-    rows = cur.fetchall()
+def deleteUsedMovies(cur):
+    global lastMovieDeleted
+    doneString = 'DONE_movie_*.TXT'
+    deleteCounter = 0
+    _path = join(scipionUserData,'projects', PROJECT,'Runs', PROTOCOLDIR, EXTRA, doneString)
+    number = 0
+    print "_path", _path
+    for file in sorted(glob.glob(_path)):
+        end = file.split('DONE_movie_')[1]
+        number = int(end.split('.')[0])
+        if number > lastMovieDeleted:
+            cur.execute("""SELECT movieName
+                           FROM {tablename}
+                           WHERE id={movId}""".format(
+                tablename=TABLENAMEMOVIES, movId=number))
+            row = cur.fetchone()
+            try:
+                print "removing: ", row[0]
+                remove(row[0])
+            except:
+                print "could not remove file"
 
-    # delete movies
-    for row in rows:
-        movieFileName = row[1]
-        print "remove file %s" % movieFileName
-        remove(movieFileName)
+            deleteCounter += 1
+    lastMovieDeleted = number
+    return deleteCounter
 
-    # update database
-    if len(rows) > 0:
-        sqlCommand = """UPDATE {tablename}
-                       set alreadyDeleted = 1
-                       WHERE id=?""".format(tablename=TABLENAMEMOVIES)
-        data = [(row[0],) for row in rows]
-        cur.executemany(sqlCommand, data)
-        conn.commit()
-    # return number of deleted movies
-    return len(rows)
+    # #  get list of movies to be deleted
+    # cur.execute("""SELECT id, movieName
+    #                FROM {tablename}
+    #                WHERE toBeDeleted=1
+    #                  AND alreadyDeleted=0""".format(
+    #     tablename=TABLENAMEMOVIES))
+    # rows = cur.fetchall()
+    #
+    # # delete movies
+    # for row in rows:
+    #     movieFileName = row[1]
+    #     print "remove file %s" % movieFileName
+    #     remove(movieFileName)
+    #
+    # # update database
+    # if len(rows) > 0:
+    #     sqlCommand = """UPDATE {tablename}
+    #                    set alreadyDeleted = 1
+    #                    WHERE id=?""".format(tablename=TABLENAMEMOVIES)
+    #     data = [(row[0],) for row in rows]
+    #     cur.executemany(sqlCommand, data)
+    #     conn.commit()
+    # # return number of deleted movies
+    # return len(rows)
 
 def insertHole(cur, conn, startDate):
     attribute = 'startCreateAt'
@@ -177,7 +211,7 @@ for hole in range(NUMBERHOLES):
             timeSpendMovie = endMovie - startMovie
             print "finishing movie: ", movie +1 , timeSpendMovie
             if timeSpendMovie < TIMEPERMOVIE:
-                print "sleeping %d", TIMEPERMOVIE - timeSpendMovie
+                print "sleeping: ", TIMEPERMOVIE - timeSpendMovie
                 time.sleep(TIMEPERMOVIE - timeSpendMovie)
             # record movie
             movieId = insertMovie(cur, conn, outFileName,
@@ -187,7 +221,7 @@ for hole in range(NUMBERHOLES):
     updateHole(cur, conn, holeId, timeSpendHole)
     print "finishing hole: ", holeId, timeSpendHole
     startDelete = time.time()
-    numDeleted = deleteUsedMovies(cur, conn)
+    numDeleted = deleteUsedMovies(cur)
     endDelete = time.time()
     # # substract time spend deleting movies
     print "movies deleted = ", numDeleted
