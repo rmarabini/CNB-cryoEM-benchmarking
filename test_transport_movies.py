@@ -1,3 +1,4 @@
+#rm movie*mrcs ; scipion python test_transport_movies.py
 import sqlite3
 from sqlite3 import Error
 import time
@@ -6,27 +7,31 @@ from os import remove, getenv
 from os.path import join
 import glob
 lastMovieDeleted =0
-
-NUMBERHOLES = 1024
+FACTOR=1.5
+NUMBERHOLES = 35
 NUMBERMOVIESPERHOLE = 4
-TIMEPERMOVIE = 20 # secs # 5
-TIMEMOVEHOLE = 45 # secs # 10
+TIMEPERMOVIE = int(20 * FACTOR) # secs # 5
+TIMEMOVEHOLE = int(44) # secs # 10
 FAILURERATE = 75 # 1 = all holes, slip 1 each 4 times
 
 DATABASENAME = 'movies.sqlite'
 TABLENAMEMOVIES = 'movies'
 TABLENAMEHOLES = 'holes'
 
-LARGEON = False
+LARGEON = True
 
 if LARGEON:
-    INMOVIENAME = '22_large_4bit.mrcs'
+    INMOVIENAME = '../Data/22_11520_4bit.mrcs'
 else:
-    INMOVIENAME = '22_4bit.mrcs'
+    INMOVIENAME = '../Data/22_4bit.mrcs'
 
 scipionUserData = getenv('SCIPION_USER_DATA')
 PROJECT='bench'
-PROTOCOLDIR='005510_ProtMotionCorr/'
+# four GPUs 3motion cor, 1 relion, no save group 3
+#PROTOCOLDIR='016755_ProtMotionCorr/'
+#PROTOCOLDIR='019004_ProtMotionCorr/'
+PROTOCOLDIR='021235_ProtMotionCorr/'
+
 EXTRA='extra'
 
 
@@ -197,8 +202,9 @@ for hole in range(NUMBERHOLES):
     holeId = insertHole(cur, conn, startHole)
     print "holeId", holeId
     # should I skip this hole?
-    if randint(0, 99) >= FAILURERATE:
-        print "skipping hole", holeId
+    randNum = randint(0, 99)
+    if randNum >= FAILURERATE:
+        print "skipping hole", holeId, "randNum =", randNum
     else:
         for movie in range(NUMBERMOVIESPERHOLE):
             startMovie = time.time()
